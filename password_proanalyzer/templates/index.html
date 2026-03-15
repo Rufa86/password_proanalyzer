@@ -1,0 +1,93 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Анализатор безопасности пароля</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="container">
+
+<h2>Анализатор безопасности пароля</h2>
+
+<input type="password" id="password" placeholder="Введите пароль">
+
+<div class="bar">
+<div id="strength-bar"></div>
+</div>
+
+<p id="strength-text"></p>
+<p id="crack-time"></p>
+
+<div class="rules">
+<p id="rule-length">• Минимум 8 символов</p>
+<p id="rule-lower">• Строчная буква</p>
+<p id="rule-upper">• Заглавная буква</p>
+<p id="rule-number">• Цифра</p>
+<p id="rule-symbol">• Специальный символ</p>
+</div>
+
+<div id="leak-warning"></div>
+
+</div>
+
+<script>
+
+const input = document.getElementById("password")
+const bar = document.getElementById("strength-bar")
+const text = document.getElementById("strength-text")
+const crack = document.getElementById("crack-time")
+const warning = document.getElementById("leak-warning")
+
+const rules = {
+length: document.getElementById("rule-length"),
+lower: document.getElementById("rule-lower"),
+upper: document.getElementById("rule-upper"),
+number: document.getElementById("rule-number"),
+symbol: document.getElementById("rule-symbol")
+}
+
+input.addEventListener("input", ()=>{
+
+fetch("/check",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({password:input.value})
+})
+.then(res=>res.json())
+.then(data=>{
+
+bar.style.width = (data.score*25)+"%"
+
+if(data.level==="Weak"){bar.style.background="red"}
+else if(data.level==="Medium"){bar.style.background="orange"}
+else if(data.level==="Strong"){bar.style.background="green"}
+else{bar.style.background="darkgreen"}
+
+text.innerText="Надежность: "+data.level+" | Энтропия: "+data.entropy
+crack.innerText="Примерное время взлома: "+data.crack_time
+
+Object.keys(data.checks).forEach(rule=>{
+if(data.checks[rule]){
+rules[rule].classList.add("ok")
+}else{
+rules[rule].classList.remove("ok")
+}
+})
+
+if(data.leaked){
+warning.style.display="block"
+warning.innerText="⚠ Пароль найден в утечках данных ("+data.count+" times)"
+}else{
+warning.style.display="none"
+}
+
+})
+
+})
+
+</script>
+
+</body>
+</html>
